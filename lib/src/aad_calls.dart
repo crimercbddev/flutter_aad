@@ -95,13 +95,16 @@ class FlutterAAD {
   final AADConfig _config;
   AADConfig get config => _config;
 
-  FlutterAAD(this._config,
-      {base_http.BaseClient http,
-      Map<String, dynamic> fullToken,
-      String fedAuthToken, String host, Function refreshCallback,})
-      : this.http = http ?? new base_http.Client(),
+  FlutterAAD(
+    this._config, {
+    base_http.BaseClient http,
+    Map<String, dynamic> fullToken,
+    String fedAuthToken,
+    String host,
+    Function refreshCallback,
+  })  : this.http = http ?? new base_http.Client(),
         this._fullToken = fullToken,
-        this._fedAuthToken = fedAuthToken, 
+        this._fedAuthToken = fedAuthToken,
         this._host = host ?? "",
         this._fbaRefreshCallback = refreshCallback;
 
@@ -126,7 +129,7 @@ class FlutterAAD {
     print(soapEnv);
 
     final url = "$host/_vti_bin/authentication.asmx";
-    var response = await http.post(url,
+    var response = await http.post(Uri.parse(url),
         headers: {
           "Content-Type": "text/xml; charset=utf-8",
           "SOAPAction": "http://schemas.microsoft.com/sharepoint/soap/Login",
@@ -224,13 +227,13 @@ class FlutterAAD {
     base_http.Response response;
     if (config.apiVersion == 1) {
       response = await http.post(
-        Uri.encodeFull(LOGIN_URI),
+        Uri.parse(Uri.encodeFull(LOGIN_URI)),
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: body,
       );
     } else {
       response = await http.post(
-        Uri.encodeFull(V2_LOGIN_URI),
+        Uri.parse(Uri.encodeFull(V2_LOGIN_URI)),
         headers: {"Accept": "application/json;odata=verbose"},
         body: body,
       );
@@ -274,13 +277,13 @@ class FlutterAAD {
     base_http.Response response;
     if (config.apiVersion == 1) {
       response = await http.post(
-        Uri.encodeFull(LOGIN_URI),
+        Uri.parse(Uri.encodeFull(LOGIN_URI)),
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: body,
       );
     } else {
       response = await http.post(
-        Uri.encodeFull(V2_LOGIN_URI),
+        Uri.parse(Uri.encodeFull(V2_LOGIN_URI)),
         headers: {"Accept": "application/json;odata=verbose"},
         body: body,
       );
@@ -336,7 +339,7 @@ class FlutterAAD {
       login_url = V2_LOGIN_URI;
     }
 
-    var response = await http.post(Uri.encodeFull(login_url),
+    var response = await http.post(Uri.parse(Uri.encodeFull(login_url)),
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: body);
     if (response.statusCode >= 200 && response.statusCode < 400) {
@@ -492,7 +495,7 @@ class FlutterAAD {
     var headers = currentHeaders;
     headers["Accept"] = "application/json;odata=verbose";
 
-    var response = await http.get(url, headers: headers);
+    var response = await http.get(Uri.parse(url), headers: headers);
 
     print("response[${response.statusCode}]:${response.body}");
 
@@ -536,7 +539,7 @@ class FlutterAAD {
         response.statusCode == 400 ||
         response.statusCode > 403 ||
         response.statusCode == 402 ||
-        (response.statusCode == 401 && full_token == null)||
+        (response.statusCode == 401 && full_token == null) ||
         (response.statusCode == 403 && fedAuthToken == null)) {
       if (onError != null) {
         onError(response.body);
@@ -600,7 +603,7 @@ class FlutterAAD {
     var headers = currentHeaders;
     headers["Accept"] = "application/json;odata=verbose";
 
-    return await http.get(url, headers: headers);
+    return await http.get(Uri.parse(url), headers: headers);
   }
 
   /// Call out for the logged in user's profile and return the response it gets
@@ -616,7 +619,7 @@ class FlutterAAD {
     var headers = currentHeaders;
     headers["Accept"] = "application/json;odata=verbose";
 
-    return await http.get(url, headers: headers);
+    return await http.get(Uri.parse(url), headers: headers);
   }
 
   /// Call out for the logged in user's profile and return null when not
@@ -705,7 +708,7 @@ class FlutterAAD {
     var headers = currentHeaders;
     headers["Accept"] = "application/json;odata=verbose";
 
-    var response = await http.get(url, headers: headers);
+    var response = await http.get(Uri.parse(url), headers: headers);
 
     print("response[${response.statusCode}]:${response.body}");
 
@@ -730,7 +733,7 @@ class FlutterAAD {
       }
       print(
           "Failed to properly refresh token! Calling onError with original response body.");
-    }else if ((response.statusCode == 401 || response.statusCode == 403) &&
+    } else if ((response.statusCode == 401 || response.statusCode == 403) &&
         fedAuthToken != null &&
         this._fbaRefreshCallback != null) {
       //statusCode:401
@@ -756,7 +759,7 @@ class FlutterAAD {
         response.statusCode == 400 ||
         response.statusCode > 403 ||
         response.statusCode == 402 ||
-        (response.statusCode == 401 && full_token == null)||
+        (response.statusCode == 401 && full_token == null) ||
         (response.statusCode == 403 && fedAuthToken == null)) {
       if (onError != null) {
         onError(response.body);
@@ -811,6 +814,6 @@ class FlutterAAD {
     var headers = currentHeaders;
     headers["Accept"] = "application/json;odata=verbose";
 
-    return await http.get(url, headers: headers);
+    return await http.get(Uri.parse(url), headers: headers);
   }
 }
