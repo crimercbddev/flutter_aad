@@ -10,13 +10,13 @@ class AADConfig {
   int apiVersion;
 
   AADConfig({
-    this.resource,
-    @required this.clientID,
-    @required this.redirectURI,
-    List<String> scope,
+    required this.resource,
+    required this.clientID,
+    required this.redirectURI,
+    List<String> scope = const [],
     this.refreshTries = 3,
     this.apiVersion = 1,
-  }) : this.scope = scope ?? [];
+  }) : this.scope = scope;
 
   AADConfig.clone(AADConfig config)
       : resource = config.resource,
@@ -32,14 +32,14 @@ class AADConfig {
 class AADMap {
   Map<String, dynamic> map;
   bool didRefreshToken;
-  Map<String, dynamic> full_token;
+  Map<String, dynamic>? full_token;
   AADMap(this.map, [this.didRefreshToken = false, this.full_token = null]);
 }
 
 class AADResponse {
   base_http.Response response;
   bool didRefreshToken;
-  Map<String, dynamic> full_token;
+  Map<String, dynamic>? full_token;
   AADResponse(this.response,
       [this.didRefreshToken = false, this.full_token = null]);
 }

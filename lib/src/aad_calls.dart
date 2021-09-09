@@ -8,18 +8,18 @@ import 'aad_classes.dart';
 import 'constants.dart';
 
 class FlutterAAD {
-  final base_http.BaseClient http;
+  final base_http.Client http;
   StreamController<bool> _tokenStreamController =
       StreamController<bool>.broadcast();
   StreamSink<bool> get _tokenIn => _tokenStreamController.sink;
   Stream<bool> get login => _tokenStreamController.stream;
 
-  Map<String, dynamic> _fullToken;
-  Map<String, dynamic> get fullToken =>
-      _fullToken == null ? null : Map.from(_fullToken);
+  Map<String, dynamic>? _fullToken;
+  Map<String, dynamic>? get fullToken =>
+      _fullToken == null ? null : Map.from(_fullToken!);
   bool get loggedIn => ((_fullToken != null &&
-          _fullToken["access_token"] != null &&
-          _fullToken["access_token"] != "") ||
+          _fullToken?["access_token"] != null &&
+          _fullToken?["access_token"] != "") ||
       (_fedAuthToken != null && _fedAuthToken != ""));
 
   String _fedAuthToken;
@@ -29,14 +29,14 @@ class FlutterAAD {
 
   String _host;
   String get host {
-    if (payload != null && payload.containsKey("aud")) {
-      return payload["aud"];
+    if (payload != null && (payload?.containsKey("aud") ?? false)) {
+      return payload!["aud"];
     } else {
       return _host;
     }
   }
 
-  JWT get jwt {
+  JWT? get jwt {
     if (currentToken != null && currentToken != "") {
       return new JWT.parse(currentToken);
     } else {
@@ -44,7 +44,7 @@ class FlutterAAD {
     }
   }
 
-  Map<String, dynamic> get payload {
+  Map<String, dynamic>? get payload {
     if (currentToken != null && currentToken != "") {
       return new JWT.parse(currentToken).claims;
     } else {
@@ -79,15 +79,15 @@ class FlutterAAD {
   }
 
   String get currentToken {
-    if (_fullToken != null && _fullToken["access_token"] != null) {
-      return _fullToken["access_token"];
+    if (_fullToken != null && _fullToken!["access_token"] != null) {
+      return _fullToken!["access_token"];
     }
     return "";
   }
 
   String get currentRefreshToken {
-    if (_fullToken != null && _fullToken["refresh_token"] != null) {
-      return _fullToken["refresh_token"];
+    if (_fullToken != null && _fullToken!["refresh_token"] != null) {
+      return _fullToken!["refresh_token"];
     }
     return "";
   }
@@ -95,13 +95,16 @@ class FlutterAAD {
   final AADConfig _config;
   AADConfig get config => _config;
 
-  FlutterAAD(this._config,
-      {base_http.BaseClient http,
-      Map<String, dynamic> fullToken,
-      String fedAuthToken, String host, Function refreshCallback,})
-      : this.http = http ?? new base_http.Client(),
+  FlutterAAD(
+    this._config, {
+    base_http.Client? http,
+    required Map<String, dynamic> fullToken,
+    required String fedAuthToken,
+    String? host,
+    required Function refreshCallback,
+  })  : this.http = http ?? new base_http.Client(),
         this._fullToken = fullToken,
-        this._fedAuthToken = fedAuthToken, 
+        this._fedAuthToken = fedAuthToken,
         this._host = host ?? "",
         this._fbaRefreshCallback = refreshCallback;
 
@@ -113,7 +116,7 @@ class FlutterAAD {
 
   /// Tries to Login to "on-site" Form Based Authentication
   Future<base_http.Response> FBALogin(host, user, password,
-      {Function refreshCallback}) async {
+      {Function? refreshCallback}) async {
     final soapEnv = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
         "<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
         "<soap:Body>" +
@@ -140,7 +143,7 @@ class FlutterAAD {
     if (response.statusCode == 200) {
       var cookie = response.headers["set-cookie"];
       print(cookie);
-      String raw_auth = cookie
+      String raw_auth = cookie!
           .split(";")
           .firstWhere((item) => item.startsWith("FedAuth"))
           .replaceAll("FedAuth=", "");
@@ -190,8 +193,8 @@ class FlutterAAD {
   /// string if the call isn't successful. This will also call the passed
   /// onError with the body of the error response.
   Future<String> GetTokenWithAuthCode(String authCode,
-      {void onError(String msg)}) async {
-    Map<String, dynamic> data =
+      {void onError(String msg)?}) async {
+    Map<String, dynamic>? data =
         await this.GetTokenMapWithAuthCode(authCode, onError: onError);
     if (data != null) {
       return data["access_token"];
@@ -203,9 +206,9 @@ class FlutterAAD {
   /// Call out to OAuth2 and get the full map token back given an authentication
   /// code or null if the call isn't successful. This will also call the passed
   /// onError with the body of the error response.
-  Future<Map<String, dynamic>> GetTokenMapWithAuthCode(
+  Future<Map<String, dynamic>?> GetTokenMapWithAuthCode(
     String authCode, {
-    void onError(String msg),
+    void onError(String msg)?,
   }) async {
     var body = {
       "grant_type": "authorization_code",
@@ -241,10 +244,10 @@ class FlutterAAD {
         response.statusCode < 400) {
       _fullToken = json.decode(response.body);
       _tokenIn.add(this.loggedIn);
-      return _fullToken;
+      return _fullToken ?? {};
     } else {
       if (onError != null) {
-        onError(response?.body);
+        onError(response.body);
       }
       return null;
     }
@@ -255,7 +258,7 @@ class FlutterAAD {
   /// call the passed onError with the body of the error response.
   Future<AADResponse> GetTokenResponseWithAuthCode(
     String authCode, {
-    void onError(String msg),
+    void onError(String msg)?,
   }) async {
     var body = {
       "grant_type": "authorization_code",
@@ -294,7 +297,7 @@ class FlutterAAD {
       return AADResponse(response, false, _fullToken);
     } else {
       if (onError != null) {
-        onError(response?.body);
+        onError(response.body);
       }
       return AADResponse(response, false, null);
     }
@@ -303,12 +306,12 @@ class FlutterAAD {
   /// Call out to OAuth2 and get the full map token back given a refresh token or
   /// null if the call isn't successful. This will also call the passed
   /// onError with the body of the error response.
-  Future<Map<String, dynamic>> RefreshTokenMap({
-    String refreshToken,
-    void onError(String msg),
-    String clientID,
-    String resource,
-    String redirectURI,
+  Future<Map<String, dynamic>?> RefreshTokenMap({
+    String? refreshToken,
+    void onError(String msg)?,
+    String? clientID,
+    String? resource,
+    String? redirectURI,
     bool onlyOutput = false,
   }) async {
     var rtoken = refreshToken;
@@ -357,13 +360,13 @@ class FlutterAAD {
   /// Call out for List items by Title and return null when not successful and
   /// the Map<String, dynamic> that is returned if successful. This will also
   /// call the passed onError with the body of the error response.
-  Future<AADMap> GetListItems(String site, String title,
-      {String refresh_token,
-      List<String> select,
-      String orderby,
-      List<String> expand,
-      List<String> filter,
-      void onError(String msg)}) async {
+  Future<AADMap?> GetListItems(String site, String title,
+      {String? refresh_token,
+      List<String>? select,
+      String? orderby,
+      List<String>? expand,
+      List<String>? filter,
+      void onError(String msg)?}) async {
     if (currentHeaders.keys.length == 0) {
       if (onError != null) {
         onError("No access token passed and saved full token is empty.");
@@ -389,13 +392,14 @@ class FlutterAAD {
         orderby: orderby,
         filter: filter,
         expand: expand);
-    if (response.response.statusCode >= 200 &&
+    if (response != null &&
+        response.response.statusCode >= 200 &&
         response.response.statusCode < 400) {
       return AADMap(json.decode(response.response.body),
           response.didRefreshToken, response.full_token);
     } else {
       if (onError != null) {
-        onError(response.response.body);
+        onError(response?.response.body ?? '');
       }
       return null;
     }
@@ -405,12 +409,12 @@ class FlutterAAD {
   /// the Map<String, dynamic> that is returned if successful. This will also
   /// call the passed onError with the body of the error response.
   /// DOES NOT TRY TO REFRESH TOKEN FOR YOU!
-  Future<Map<String, dynamic>> GetListItemsWORefresh(String site, String title,
-      {List<String> select,
-      String orderby,
-      List<String> filter,
-      List<String> expand,
-      void onError(String msg)}) async {
+  Future<Map<String, dynamic>?> GetListItemsWORefresh(String site, String title,
+      {List<String>? select,
+      String? orderby,
+      List<String>? filter,
+      List<String>? expand,
+      void onError(String msg)?}) async {
     if (this.currentHeaders.keys.length == 0) {
       return null;
     }
@@ -427,13 +431,13 @@ class FlutterAAD {
   }
 
   /// Call out for List items by Title and return the response it gets back.
-  Future<AADResponse> GetListItemsResponse(String site, String title,
-      {String refresh_token,
-      List<String> select,
-      String orderby,
-      List<String> filter,
-      List<String> expand,
-      void onError(String msg)}) async {
+  Future<AADResponse?> GetListItemsResponse(String site, String title,
+      {String? refresh_token,
+      List<String>? select,
+      String? orderby,
+      List<String>? filter,
+      List<String>? expand,
+      void onError(String msg)?}) async {
     if (this.currentHeaders.keys.length == 0) {
       return null;
     }
@@ -497,7 +501,7 @@ class FlutterAAD {
     print("response[${response.statusCode}]:${response.body}");
 
     // handle refresh
-    Map<String, dynamic> full_token;
+    Map<String, dynamic>? full_token;
     if (response.statusCode == 401 &&
         response.body.contains("The token is expired") &&
         this.currentHeaders.containsKey("Authorization")) {
@@ -508,7 +512,9 @@ class FlutterAAD {
         if (full_token != null) {
           var sub_resp = await GetListItemsResponseWORefresh(site, title,
               select: select, orderby: orderby, filter: filter, expand: expand);
-          if (sub_resp.statusCode >= 200 && sub_resp.statusCode < 400) {
+          if (sub_resp != null &&
+              sub_resp.statusCode >= 200 &&
+              sub_resp.statusCode < 400) {
             return AADResponse(sub_resp, true, full_token);
           }
         }
@@ -524,7 +530,9 @@ class FlutterAAD {
         if (full_token != null) {
           var sub_resp = await GetListItemsResponseWORefresh(site, title,
               select: select, orderby: orderby, filter: filter, expand: expand);
-          if (sub_resp.statusCode >= 200 && sub_resp.statusCode < 400) {
+          if (sub_resp != null &&
+              sub_resp.statusCode >= 200 &&
+              sub_resp.statusCode < 400) {
             return AADResponse(sub_resp, true, full_token);
           }
         }
@@ -536,7 +544,7 @@ class FlutterAAD {
         response.statusCode == 400 ||
         response.statusCode > 403 ||
         response.statusCode == 402 ||
-        (response.statusCode == 401 && full_token == null)||
+        (response.statusCode == 401 && full_token == null) ||
         (response.statusCode == 403 && fedAuthToken == null)) {
       if (onError != null) {
         onError(response.body);
@@ -548,12 +556,12 @@ class FlutterAAD {
 
   /// Call out for List items by Title and return the response it gets back.
   /// DOES NOT TRY TO REFRESH TOKEN FOR YOU!
-  Future<base_http.Response> GetListItemsResponseWORefresh(
+  Future<base_http.Response?> GetListItemsResponseWORefresh(
       String site, String title,
-      {List<String> select,
-      String orderby,
-      List<String> filter,
-      List<String> expand}) async {
+      {List<String>? select,
+      String? orderby,
+      List<String>? filter,
+      List<String>? expand}) async {
     if (this.currentHeaders.keys.length == 0) {
       return null;
     }
@@ -606,8 +614,8 @@ class FlutterAAD {
   /// Call out for the logged in user's profile and return the response it gets
   /// back. This will also call the passed onError with the body of the error
   /// response.
-  Future<base_http.Response> GetMyProfileResponse(
-      {List<String> select, String orderby, List<String> filter}) async {
+  Future<base_http.Response?> GetMyProfileResponse(
+      {List<String>? select, String? orderby, List<String>? filter}) async {
     var url = GRAPH_URI + "/me";
     if (currentHeaders.keys.length == 0) {
       return null;
@@ -622,11 +630,11 @@ class FlutterAAD {
   /// Call out for the logged in user's profile and return null when not
   /// successful and the Map<String, dynamic> that is returned if successful.
   /// This will also call the passed onError with the body of the error response.
-  Future<Map<String, dynamic>> GetMyProfile(
-      {List<String> select,
-      String orderby,
-      List<String> filter,
-      void onError(String msg)}) async {
+  Future<Map<String, dynamic>?> GetMyProfile(
+      {List<String>? select,
+      String? orderby,
+      List<String>? filter,
+      void onError(String msg)?}) async {
     if (currentHeaders.keys.length == 0) {
       if (onError != null) {
         onError("No access token passed and saved full token is empty.");
@@ -636,26 +644,28 @@ class FlutterAAD {
 
     var response = await this
         .GetMyProfileResponse(select: select, orderby: orderby, filter: filter);
-    if (response.statusCode >= 200 && response.statusCode < 400) {
+    if (response != null &&
+        response.statusCode >= 200 &&
+        response.statusCode < 400) {
       return json.decode(response.body);
     } else {
       if (onError != null) {
-        onError(response.body);
+        onError(response?.body ?? '');
       }
       return null;
     }
   }
 
   /// Call out for a general query to the site
-  Future<AADResponse> GetSharepointSearchResponse(String site,
-      {String query,
-      String refresh_token,
-      List<String> select,
-      String orderby,
-      String sourceid,
-      int rowlimit,
-      int startrow,
-      void onError(String msg)}) async {
+  Future<AADResponse?> GetSharepointSearchResponse(String site,
+      {String? query,
+      String? refresh_token,
+      List<String>? select,
+      String? orderby,
+      String? sourceid,
+      int? rowlimit,
+      int? startrow,
+      void onError(String msg)?}) async {
     if (currentHeaders.keys.length == 0) {
       if (onError != null) {
         onError("No access token passed and saved full token is empty.");
@@ -709,7 +719,7 @@ class FlutterAAD {
 
     print("response[${response.statusCode}]:${response.body}");
 
-    Map<String, dynamic> full_token;
+    Map<String, dynamic>? full_token;
     if (response.statusCode == 401 &&
         this.currentHeaders.containsKey("Authorization")) {
       //statusCode:401
@@ -723,14 +733,16 @@ class FlutterAAD {
               sourceid: sourceid,
               rowlimit: rowlimit,
               startrow: startrow);
-          if (sub_resp.statusCode >= 200 && sub_resp.statusCode < 400) {
+          if (sub_resp != null &&
+              sub_resp.statusCode >= 200 &&
+              sub_resp.statusCode < 400) {
             return AADResponse(sub_resp, true, full_token);
           }
         }
       }
       print(
           "Failed to properly refresh token! Calling onError with original response body.");
-    }else if ((response.statusCode == 401 || response.statusCode == 403) &&
+    } else if ((response.statusCode == 401 || response.statusCode == 403) &&
         fedAuthToken != null &&
         this._fbaRefreshCallback != null) {
       //statusCode:401
@@ -744,7 +756,9 @@ class FlutterAAD {
               sourceid: sourceid,
               rowlimit: rowlimit,
               startrow: startrow);
-          if (sub_resp.statusCode >= 200 && sub_resp.statusCode < 400) {
+          if (sub_resp != null &&
+              sub_resp.statusCode >= 200 &&
+              sub_resp.statusCode < 400) {
             return AADResponse(sub_resp, true, full_token);
           }
         }
@@ -756,7 +770,7 @@ class FlutterAAD {
         response.statusCode == 400 ||
         response.statusCode > 403 ||
         response.statusCode == 402 ||
-        (response.statusCode == 401 && full_token == null)||
+        (response.statusCode == 401 && full_token == null) ||
         (response.statusCode == 403 && fedAuthToken == null)) {
       if (onError != null) {
         onError(response.body);
@@ -768,14 +782,14 @@ class FlutterAAD {
 
   /// Call out for a general query to the site
   /// DOES NOT TRY TO REFRESH TOKEN FOR YOU
-  Future<base_http.Response> GetSharepointSearchResponseWORefresh(
+  Future<base_http.Response?> GetSharepointSearchResponseWORefresh(
     String site, {
-    String query,
-    List<String> select,
-    String orderby,
-    String sourceid,
-    int rowlimit,
-    int startrow,
+    String? query,
+    List<String>? select,
+    String? orderby,
+    String? sourceid,
+    int? rowlimit,
+    int? startrow,
   }) async {
     if (currentHeaders.keys.length == 0) {
       return null;
