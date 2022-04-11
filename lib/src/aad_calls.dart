@@ -5,7 +5,6 @@ import 'package:corsac_jwt/corsac_jwt.dart';
 import 'package:http/http.dart' as base_http;
 
 import 'aad_classes.dart';
-import 'constants.dart';
 
 class FlutterAAD {
   final base_http.BaseClient http;
@@ -163,15 +162,16 @@ class FlutterAAD {
   /// Generates the OAuth2 URI to be used for a webview to renderer to be able to send
   /// back the authorization code properly.
   String GetAuthCodeURI() {
-    var uri_base = Uri.parse(AUTH_URI);
+    var uri_base = Uri.parse(config.AUTH_URI);
     if (config.apiVersion != 1) {
-      uri_base = Uri.parse(V2_AUTH_URI);
+      uri_base = Uri.parse(config.V2_AUTH_URI);
     }
 
     var query = {
       "client_id": config.clientID,
       "response_type": "code",
-      "response_mode": "query",
+      "redirect_uri": config.redirectURI,
+      // "response_mode": "query",
     };
     if (config.apiVersion == 1) {
       query["resources"] = config.resource;
@@ -227,13 +227,13 @@ class FlutterAAD {
     base_http.Response response;
     if (config.apiVersion == 1) {
       response = await http.post(
-        Uri.parse(Uri.encodeFull(LOGIN_URI)),
+        Uri.parse(Uri.encodeFull(config.LOGIN_URI)),
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: body,
       );
     } else {
       response = await http.post(
-        Uri.parse(Uri.encodeFull(V2_LOGIN_URI)),
+        Uri.parse(Uri.encodeFull(config.V2_LOGIN_URI)),
         headers: {"Accept": "application/json;odata=verbose"},
         body: body,
       );
@@ -277,13 +277,13 @@ class FlutterAAD {
     base_http.Response response;
     if (config.apiVersion == 1) {
       response = await http.post(
-        Uri.parse(Uri.encodeFull(LOGIN_URI)),
+        Uri.parse(Uri.encodeFull(config.LOGIN_URI)),
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: body,
       );
     } else {
       response = await http.post(
-        Uri.parse(Uri.encodeFull(V2_LOGIN_URI)),
+        Uri.parse(Uri.encodeFull(config.V2_LOGIN_URI)),
         headers: {"Accept": "application/json;odata=verbose"},
         body: body,
       );
@@ -330,13 +330,13 @@ class FlutterAAD {
       "refresh_token": rtoken,
     };
 
-    var login_url = LOGIN_URI;
+    var login_url = config.LOGIN_URI;
     if (config.apiVersion == 1) {
       body["resource"] = resource ?? config.resource;
     } else {
       body["scope"] = config.Scope.join(' ');
       body["redirect_uri"] = redirectURI ?? config.redirectURI;
-      login_url = V2_LOGIN_URI;
+      login_url = config.V2_LOGIN_URI;
     }
 
     var response = await http.post(Uri.parse(Uri.encodeFull(login_url)),
@@ -611,7 +611,7 @@ class FlutterAAD {
   /// response.
   Future<base_http.Response> GetMyProfileResponse(
       {List<String> select, String orderby, List<String> filter}) async {
-    var url = GRAPH_URI + "/me";
+    var url = config.GRAPH_URI + "/me";
     if (currentHeaders.keys.length == 0) {
       return null;
     }

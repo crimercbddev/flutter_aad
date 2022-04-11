@@ -8,6 +8,7 @@ class AADConfig {
   String resource;
   int refreshTries;
   int apiVersion;
+  String tenantId;
 
   AADConfig({
     this.resource,
@@ -16,6 +17,7 @@ class AADConfig {
     List<String> scope,
     this.refreshTries = 3,
     this.apiVersion = 1,
+    this.tenantId,
   }) : this.scope = scope ?? [];
 
   AADConfig.clone(AADConfig config)
@@ -24,9 +26,21 @@ class AADConfig {
         redirectURI = config.redirectURI,
         scope = List.from(config.scope),
         refreshTries = config.refreshTries,
-        apiVersion = config.apiVersion;
+        apiVersion = config.apiVersion,
+        tenantId = config.tenantId;
 
   List<String> get Scope => List.from(scope);
+
+  String get tenant => tenantId ?? 'common';
+  String get V2_LOGIN_URI =>
+      'https://login.microsoftonline.com/$tenant/oauth2/v2.0/token';
+  String get LOGIN_URI =>
+      'https://login.microsoftonline.com/$tenant/oauth2/token';
+  String get V2_AUTH_URI =>
+      'https://login.microsoftonline.com/$tenant/oauth2/v2.0/authorize';
+  String get AUTH_URI =>
+      'https://login.microsoftonline.com/$tenant/oauth2/authorize';
+  String GRAPH_URI = 'https://graph.microsoft.com/v1.0';
 }
 
 class AADMap {
